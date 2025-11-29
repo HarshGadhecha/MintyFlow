@@ -1,20 +1,20 @@
-import {
-  signInWithCredential,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
-  deleteUser,
-} from 'firebase/auth';
-import { ref, set, update, get, remove } from 'firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  OAuthProvider,
+  deleteUser,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  signInWithCredential,
+} from 'firebase/auth';
+import { get, ref, remove, set, update } from 'firebase/database';
 import { auth, database } from '../../config/firebase';
-import { User } from '../../types';
 import { STORAGE_KEYS } from '../../constants/AppConstants';
+import { User } from '../../types';
 
 class AuthService {
   constructor() {
@@ -75,7 +75,7 @@ class AuthService {
     try {
       // Generate nonce for security
       const rawNonce = Math.random().toString(36).substring(2, 15) +
-                       Math.random().toString(36).substring(2, 15);
+        Math.random().toString(36).substring(2, 15);
 
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
