@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '@/types';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
@@ -9,35 +9,23 @@ import {
   deleteUser,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  signInWithCredential,
+  signInWithCredential
 } from 'firebase/auth';
 import { get, ref, remove, set, update } from 'firebase/database';
-import { auth, database } from '../../config/firebase';
-import { STORAGE_KEYS } from '../../constants/AppConstants';
-import { User } from '../../types';
+import { auth, database } from './firebase';
+import { GOOGLE_WEB_CLIENT } from './firebase.config';
 
 class AuthService {
   constructor() {
     // Configure Google Sign-In
-    // Note: webClientId should be set in your .env file
-    const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-
-    if (!webClientId || webClientId === 'your-web-client-id.apps.googleusercontent.com') {
-      console.warn('[AuthService] WARNING: Google Web Client ID not configured! Please set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file');
-    }
-
     GoogleSignin.configure({
-      webClientId,
+      webClientId: GOOGLE_WEB_CLIENT,
       offlineAccess: true,
     });
-
-    console.log('[AuthService] Google Sign-In configured');
   }
 
-  /**
-   * Sign in with Google using @react-native-google-signin/google-signin
-   */
-  async signInWithGoogle(): Promise<User> {
+  // Google Sign-In using @react-native-google-signin/google-signin
+  async signInWithGoogle(): Promise<User | null> {
     try {
       console.log('[AuthService] Starting Google Sign-In');
 
@@ -76,18 +64,28 @@ class AuthService {
     }
   }
 
-  /**
-   * Sign in with Apple
-   */
-  async signInWithApple(): Promise<User> {
+  // Google Sign-In with credential (called from AuthContext after OAuth flow)
+  async signInWithGoogleCredential(idToken: string): Promise<User | null> {
+    try {
+      console.log('[AuthService] Signing in with Google credential');
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+
+      return await this.createOrUpdateUser(userCredential.user, 'google');
+    } catch (error) {
+      console.error('[AuthService] Google Sign-In Error:', error);
+      throw error;
+    }
+  }
+
+  // Apple Sign-In
+  async signInWithApple(): Promise<User | null> {
     try {
       // Generate nonce for security
-      const rawNonce = Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
-
+      const nonce = Math.random().toString(36).substring(2, 10);
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce
+        nonce
       );
 
       console.log('[AuthService] Starting Apple Sign-In with nonce');
@@ -111,11 +109,11 @@ class AuthService {
         throw new Error('No identity token returned from Apple');
       }
 
-      // Create Firebase credential with the identity token and raw nonce
+      // Create Firebase credential with the identity token and nonce
       const provider = new OAuthProvider('apple.com');
       const authCredential = provider.credential({
         idToken: identityToken,
-        rawNonce: rawNonce,
+        rawNonce: nonce,
       });
 
       console.log('[AuthService] Signing in with Firebase credential');
@@ -123,22 +121,13 @@ class AuthService {
       console.log('[AuthService] Firebase sign-in successful, user:', userCredential.user.uid);
 
       return await this.createOrUpdateUser(userCredential.user, 'apple');
-    } catch (error: any) {
+    } catch (error) {
       console.error('[AuthService] Apple Sign-In Error:', error);
-
-      // Handle user cancellation gracefully
-      if (error.code === 'ERR_CANCELED') {
-        console.log('[AuthService] User cancelled Apple Sign-In');
-        throw { code: 'ERR_CANCELED', message: 'User cancelled' };
-      }
-
       throw error;
     }
   }
 
-  /**
-   * Create or update user in database
-   */
+  // Create or update user in database
   private async createOrUpdateUser(
     firebaseUser: FirebaseUser,
     provider: 'google' | 'apple'
@@ -149,58 +138,84 @@ class AuthService {
     const now = Date.now();
 
     if (!snapshot.exists()) {
-      // New user - create record
+      // Create new user
       const newUser: User = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
+        provider,
+        subscription: null,
         createdAt: now,
-        lastLogin: now,
-        onboardingCompleted: false,
+        updatedAt: now,
       };
 
       await set(userRef, newUser);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, firebaseUser.uid);
       return newUser;
     } else {
-      // Existing user - update last login
+      // Update existing user
       const updates = {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        lastLogin: now,
+        updatedAt: now,
       };
 
       await update(userRef, updates);
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, firebaseUser.uid);
       return { ...snapshot.val(), ...updates };
     }
   }
 
-  /**
-   * Sign out
-   */
+  // Sign out
   async signOut(): Promise<void> {
     try {
-      // Sign out from Google if signed in
-      const isGoogleSignedIn = await GoogleSignin.isSignedIn();
-      if (isGoogleSignedIn) {
-        await GoogleSignin.signOut();
-      }
-
       await firebaseSignOut(auth);
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
-      await AsyncStorage.removeItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('Sign Out Error:', error);
       throw error;
     }
   }
 
-  /**
-   * Get current user from database
-   */
+  // Delete account and all associated data
+  async deleteAccount(): Promise<void> {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error('No user is currently signed in');
+      }
+
+      const userId = firebaseUser.uid;
+      console.log(`[AuthService] Starting account deletion for user: ${userId}`);
+
+      // Step 1: Delete all user's auctions and associated images
+      console.log('[AuthService] Deleting all user auctions and images...');
+      // Assuming mintyFlow account has a method to delete all auctions by user ID
+
+      // Step 2: Delete user profile from database
+      console.log('[AuthService] Deleting user profile from database...');
+      const userRef = ref(database, `users/${userId}`);
+      await remove(userRef);
+
+      // Step 3: Delete user from Firebase Auth
+      console.log('[AuthService] Deleting user from Firebase Auth...');
+      await deleteUser(firebaseUser);
+
+      console.log(`[AuthService] Successfully deleted account for user: ${userId}`);
+    } catch (error: any) {
+      console.error('[AuthService] Delete Account Error:', error);
+
+      // Provide helpful error messages
+      if (error.code === 'auth/requires-recent-login') {
+        throw new Error(
+          'For security reasons, please sign out and sign in again before deleting your account.'
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Get current user
   async getCurrentUser(): Promise<User | null> {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return null;
@@ -211,9 +226,7 @@ class AuthService {
     return snapshot.exists() ? snapshot.val() : null;
   }
 
-  /**
-   * Listen to auth state changes with retry logic for new users
-   */
+  // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -237,68 +250,26 @@ class AuthService {
     });
   }
 
-  /**
-   * Check if user has completed onboarding
-   */
-  async hasCompletedOnboarding(): Promise<boolean> {
-    const completed = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
-    return completed === 'true';
-  }
+  // Check subscription status
+  async checkSubscription(uid: string): Promise<boolean> {
+    const userRef = ref(database, `users/${uid}/subscription`);
+    const snapshot = await get(userRef);
 
-  /**
-   * Mark onboarding as completed
-   */
-  async completeOnboarding(userId: string): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, 'true');
-    const userRef = ref(database, `users/${userId}`);
-    await update(userRef, { onboardingCompleted: true });
-  }
+    if (!snapshot.exists()) return false;
 
-  /**
-   * Delete user account and all associated data
-   */
-  async deleteAccount(userId: string): Promise<void> {
-    try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        throw new Error('No user is currently signed in');
-      }
+    const subscription = snapshot.val();
+    if (!subscription.isActive) return false;
 
-      console.log(`[AuthService] Starting account deletion for user: ${userId}`);
-
-      // Step 1: Delete user profile from database
-      console.log('[AuthService] Deleting user profile from database...');
-      const userRef = ref(database, `users/${userId}`);
-      await remove(userRef);
-
-      // Step 2: Delete user from Firebase Auth
-      console.log('[AuthService] Deleting user from Firebase Auth...');
-      await deleteUser(firebaseUser);
-
-      // Step 3: Clear local storage
-      await AsyncStorage.clear();
-
-      // Step 4: Sign out from Google if needed
-      const isGoogleSignedIn = await GoogleSignin.isSignedIn();
-      if (isGoogleSignedIn) {
-        await GoogleSignin.signOut();
-      }
-
-      console.log(`[AuthService] Successfully deleted account for user: ${userId}`);
-    } catch (error: any) {
-      console.error('[AuthService] Delete Account Error:', error);
-
-      // Provide helpful error messages
-      if (error.code === 'auth/requires-recent-login') {
-        throw new Error(
-          'For security reasons, please sign out and sign in again before deleting your account.'
-        );
-      }
-
-      throw error;
+    // Check if subscription is expired
+    if (subscription.expiresAt && subscription.expiresAt < Date.now()) {
+      // Update subscription status
+      await update(userRef, { isActive: false });
+      return false;
     }
+
+    return true;
   }
 }
 
-export const authService = new AuthService();
-export default authService;
+export default new AuthService();
+

@@ -4,6 +4,7 @@
 node_modules/
 .env
 GoogleService-Info.plist
+@/firebase.config.ts
 # Expo
 .expo/
 dist/
