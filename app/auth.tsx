@@ -4,14 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Platform,
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Crypto from 'expo-crypto';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { APP_NAME } from '../constants/AppConstants';
@@ -21,26 +18,16 @@ export default function AuthScreen() {
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // Google Sign In configuration
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
-
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      const result = await promptAsync();
-
-      if (result.type === 'success') {
-        const { authentication } = result;
-        if (authentication?.idToken) {
-          await signInWithGoogle(authentication.idToken);
-          router.replace('/onboarding');
-        }
+      await signInWithGoogle();
+      router.replace('/onboarding');
+    } catch (error: any) {
+      if (error.code === 'ERR_CANCELED') {
+        // User canceled
+        return;
       }
-    } catch (error) {
       console.error('Google sign in error:', error);
       Alert.alert('Error', 'Failed to sign in with Google');
     } finally {
@@ -51,30 +38,8 @@ export default function AuthScreen() {
   const handleAppleSignIn = async () => {
     try {
       setLoading(true);
-
-      // Generate a raw random nonce
-      const rawNonce = Math.random().toString(36).substring(2, 15) +
-                       Math.random().toString(36).substring(2, 15);
-
-      // Hash the raw nonce with SHA256 to send to Apple
-      const hashedNonce = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        rawNonce
-      );
-
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-        nonce: hashedNonce, // Send hashed nonce to Apple
-      });
-
-      if (credential.identityToken) {
-        // Pass the raw nonce to Firebase for verification
-        await signInWithApple(credential.identityToken, rawNonce);
-        router.replace('/onboarding');
-      }
+      await signInWithApple();
+      router.replace('/onboarding');
     } catch (error: any) {
       if (error.code === 'ERR_CANCELED') {
         // User canceled
@@ -108,7 +73,7 @@ export default function AuthScreen() {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: theme.card, borderColor: theme.border }]}
           onPress={handleGoogleSignIn}
-          disabled={loading || !request}
+          disabled={loading}
         >
           <View style={styles.buttonContent}>
             <Text style={styles.googleIcon}>G</Text>
