@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,43 +17,81 @@ export default function AuthScreen() {
   const { theme } = useTheme();
   const { signInWithGoogle, signInWithApple } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      await signInWithGoogle();
-      router.replace('/onboarding');
+      setLoadingMessage('Signing in with Google...');
+      console.log('[AuthScreen] Starting Google Sign-In...');
+
+      const user = await signInWithGoogle();
+      console.log('[AuthScreen] Google Sign-In successful:', user.email);
+
+      setLoadingMessage('Login successful!');
+      // Don't navigate manually - let the auth state change trigger navigation
+      // The index.tsx will handle routing based on onboardingCompleted status
     } catch (error: any) {
+      setLoading(false);
+      setLoadingMessage('');
+
       if (error.code === 'ERR_CANCELED') {
-        // User canceled
+        console.log('[AuthScreen] User cancelled Google Sign-In');
         return;
       }
-      console.error('Google sign in error:', error);
-      Alert.alert('Error', 'Failed to sign in with Google');
-    } finally {
-      setLoading(false);
+
+      console.error('[AuthScreen] Google sign in error:', error);
+      Alert.alert(
+        'Sign In Failed',
+        error.message || 'Failed to sign in with Google. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handleAppleSignIn = async () => {
     try {
       setLoading(true);
-      await signInWithApple();
-      router.replace('/onboarding');
+      setLoadingMessage('Signing in with Apple...');
+      console.log('[AuthScreen] Starting Apple Sign-In...');
+
+      const user = await signInWithApple();
+      console.log('[AuthScreen] Apple Sign-In successful:', user.email);
+
+      setLoadingMessage('Login successful!');
+      // Don't navigate manually - let the auth state change trigger navigation
     } catch (error: any) {
+      setLoading(false);
+      setLoadingMessage('');
+
       if (error.code === 'ERR_CANCELED') {
-        // User canceled
+        console.log('[AuthScreen] User cancelled Apple Sign-In');
         return;
       }
-      console.error('Apple sign in error:', error);
-      Alert.alert('Error', 'Failed to sign in with Apple');
-    } finally {
-      setLoading(false);
+
+      console.error('[AuthScreen] Apple sign in error:', error);
+      Alert.alert(
+        'Sign In Failed',
+        error.message || 'Failed to sign in with Apple. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={[styles.loadingCard, { backgroundColor: theme.card }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.text }]}>
+              {loadingMessage}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* Logo/Branding */}
       <View style={styles.header}>
         <Text style={[styles.appName, { color: theme.primary }]}>{APP_NAME}</Text>
@@ -111,6 +149,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingCard: {
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   header: {
     alignItems: 'center',
