@@ -51,9 +51,15 @@ export default function AuthScreen() {
   const handleAppleSignIn = async () => {
     try {
       setLoading(true);
-      const nonce = await Crypto.digestStringAsync(
+
+      // Generate a raw random nonce
+      const rawNonce = Math.random().toString(36).substring(2, 15) +
+                       Math.random().toString(36).substring(2, 15);
+
+      // Hash the raw nonce with SHA256 to send to Apple
+      const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
-        Math.random().toString()
+        rawNonce
       );
 
       const credential = await AppleAuthentication.signInAsync({
@@ -61,11 +67,12 @@ export default function AuthScreen() {
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
-        nonce,
+        nonce: hashedNonce, // Send hashed nonce to Apple
       });
 
       if (credential.identityToken) {
-        await signInWithApple(credential.identityToken, nonce);
+        // Pass the raw nonce to Firebase for verification
+        await signInWithApple(credential.identityToken, rawNonce);
         router.replace('/onboarding');
       }
     } catch (error: any) {
