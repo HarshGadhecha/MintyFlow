@@ -20,10 +20,18 @@ class AuthService {
   constructor() {
     // Configure Google Sign-In
     // Note: webClientId should be set in your .env file
+    const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+    if (!webClientId || webClientId === 'your-web-client-id.apps.googleusercontent.com') {
+      console.warn('[AuthService] WARNING: Google Web Client ID not configured! Please set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file');
+    }
+
     GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      webClientId,
       offlineAccess: true,
     });
+
+    console.log('[AuthService] Google Sign-In configured');
   }
 
   /**

@@ -9,15 +9,17 @@ export default function IndexScreen() {
   const { theme } = useTheme();
 
   useEffect(() => {
+    console.log('[IndexScreen] Auth state:', { loading, user: user?.email, onboardingCompleted: user?.onboardingCompleted });
+
     if (!loading) {
       if (!user) {
-        // Not authenticated - show auth screen
+        console.log('[IndexScreen] No user - navigating to /auth');
         router.replace('/auth');
       } else if (!user.onboardingCompleted) {
-        // Authenticated but not onboarded - show onboarding
+        console.log('[IndexScreen] User not onboarded - navigating to /onboarding');
         router.replace('/onboarding');
       } else {
-        // Authenticated and onboarded - show main app
+        console.log('[IndexScreen] User authenticated and onboarded - navigating to /(tabs)');
         router.replace('/(tabs)');
       }
     }
