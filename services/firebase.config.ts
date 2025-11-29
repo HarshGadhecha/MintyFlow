@@ -3,6 +3,7 @@ export const firebaseConfig = {
   apiKey: "AIzaSyC0PjsuWhYoyfAYe7EAg1D93vjz4VBKDhk",
   authDomain: "intyflow-a8256.firebaseapp.com",
   projectId: "mintyflow-a8256",
+  databaseURL: "https://mintyflow-a8256-default-rtdb.europe-west1.firebasedatabase.app",
   storageBucket: "mintyflow-a8256.firebasestorage.app",
   messagingSenderId: "669922355450",
   appId: "1:669922355450:web:760ac15937c05cc6880143",
