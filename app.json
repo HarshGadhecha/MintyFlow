@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mintyflow.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSFaceIDUsageDescription": "MintyFlow uses Face ID to secure your financial data",
         "NSPhotoLibraryUsageDescription": "MintyFlow needs access to your photo library to attach receipts"
