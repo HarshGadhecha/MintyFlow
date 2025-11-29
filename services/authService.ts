@@ -130,7 +130,7 @@ class AuthService {
   // Create or update user in database
   private async createOrUpdateUser(
     firebaseUser: FirebaseUser,
-    provider: 'google' | 'apple'
+    _provider: 'google' | 'apple'
   ): Promise<User> {
     const userRef = ref(database, `users/${firebaseUser.uid}`);
     const snapshot = await get(userRef);
@@ -144,10 +144,9 @@ class AuthService {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        provider,
-        subscription: null,
         createdAt: now,
-        updatedAt: now,
+        lastLogin: now,
+        onboardingCompleted: false,
       };
 
       await set(userRef, newUser);
@@ -158,7 +157,7 @@ class AuthService {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        updatedAt: now,
+        lastLogin: now,
       };
 
       await update(userRef, updates);
@@ -226,6 +225,18 @@ class AuthService {
     return snapshot.exists() ? snapshot.val() : null;
   }
 
+  // Mark onboarding as complete
+  async completeOnboarding(): Promise<void> {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      throw new Error('No user is currently signed in');
+    }
+
+    const userRef = ref(database, `users/${firebaseUser.uid}`);
+    await update(userRef, { onboardingCompleted: true });
+    console.log('[AuthService] Onboarding marked as complete for user:', firebaseUser.uid);
+  }
+
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, async (firebaseUser) => {
@@ -248,26 +259,6 @@ class AuthService {
         callback(null);
       }
     });
-  }
-
-  // Check subscription status
-  async checkSubscription(uid: string): Promise<boolean> {
-    const userRef = ref(database, `users/${uid}/subscription`);
-    const snapshot = await get(userRef);
-
-    if (!snapshot.exists()) return false;
-
-    const subscription = snapshot.val();
-    if (!subscription.isActive) return false;
-
-    // Check if subscription is expired
-    if (subscription.expiresAt && subscription.expiresAt < Date.now()) {
-      // Update subscription status
-      await update(userRef, { isActive: false });
-      return false;
-    }
-
-    return true;
   }
 }
 

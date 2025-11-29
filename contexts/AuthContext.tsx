@@ -8,9 +8,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
-  hasSubscription: boolean;
-  refreshSubscription: () => Promise<void>;
-  subscriptionType: string | null;
+  completeOnboarding: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,8 +16,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasSubscription, setHasSubscription] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState<string | null>(null);
 
   // Debug: Log state changes
   useEffect(() => {
@@ -27,10 +23,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasUser: !!user,
       userId: user?.uid,
       loading,
-      hasSubscription,
-      subscriptionType,
     });
-  }, [user, loading, hasSubscription, subscriptionType]);
+  }, [user, loading]);
 
   useEffect(() => {
     // console.log('[AuthContext] Component mounted, initializing auth listener');
@@ -47,25 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       // console.log('[AuthContext] Setting loading to false after auth state change');
       setLoading(false);
-
-      if (user) {
-        // console.log('[AuthContext] User exists, checking subscription status');
-        // Check subscription status
-        const subStatus = await authService.checkSubscription(user.uid);
-        console.log('[AuthContext] Subscription status:', subStatus);
-        setHasSubscription(subStatus);
-
-        // Set subscription type
-        if (user.subscription?.isActive) {
-          setSubscriptionType(user.subscription.type);
-        } else {
-          setSubscriptionType(null);
-        }
-      } else {
-        console.log('[AuthContext] No user, setting hasSubscription to false');
-        setHasSubscription(false);
-        setSubscriptionType(null);
-      }
     });
 
     return () => {
@@ -125,9 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.signOut();
       console.log('[AuthContext] authService.signOut() completed, clearing user state');
       setUser(null);
-      setHasSubscription(false);
-      setSubscriptionType(null);
-      console.log('[AuthContext] User and subscription state cleared');
+      console.log('[AuthContext] User state cleared');
     } catch (error) {
       console.error('[AuthContext] Sign Out Error:', error);
       throw error;
@@ -147,9 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('[AuthContext] Account deleted, clearing user state');
       setUser(null);
-      setHasSubscription(false);
-      setSubscriptionType(null);
-      console.log('[AuthContext] User and subscription state cleared after account deletion');
+      console.log('[AuthContext] User state cleared after account deletion');
     } catch (error) {
       console.error('[AuthContext] Delete Account Error:', error);
       throw error;
@@ -159,34 +130,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshSubscription = async () => {
-    if (!user) {
-      console.log('[AuthContext] No user to refresh subscription for');
-      return;
-    }
-
+  const completeOnboarding = async () => {
     try {
-      console.log('[AuthContext] Refreshing subscription status for user:', user.uid);
+      console.log('[AuthContext] completeOnboarding called');
+      await authService.completeOnboarding();
 
-      // Get fresh user data from Firebase
-      const freshUser = await authService.getCurrentUser();
-      if (freshUser) {
-        setUser(freshUser);
-
-        // Check subscription status
-        const subStatus = await authService.checkSubscription(user.uid);
-        console.log('[AuthContext] Refreshed subscription status:', subStatus);
-        setHasSubscription(subStatus);
-
-        // Update subscription type
-        if (freshUser.subscription?.isActive) {
-          setSubscriptionType(freshUser.subscription.type);
-        } else {
-          setSubscriptionType(null);
-        }
+      // Update local user state
+      if (user) {
+        setUser({ ...user, onboardingCompleted: true });
       }
+      console.log('[AuthContext] Onboarding completed');
     } catch (error) {
-      console.error('[AuthContext] Error refreshing subscription:', error);
+      console.error('[AuthContext] Complete Onboarding Error:', error);
+      throw error;
     }
   };
 
@@ -199,9 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithApple,
         signOut,
         deleteAccount,
-        hasSubscription,
-        refreshSubscription,
-        subscriptionType,
+        completeOnboarding,
       }}
     >
       {children}

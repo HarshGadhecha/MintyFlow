@@ -62,8 +62,12 @@ export default function OnboardingScreen() {
   };
 
   const handleComplete = async () => {
-    await completeOnboarding();
-    router.replace('/(tabs)');
+    try {
+      await completeOnboarding();
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+    }
   };
 
   const renderItem = ({ item }: { item: typeof ONBOARDING_DATA[0] }) => (
