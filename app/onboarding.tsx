@@ -64,7 +64,8 @@ export default function OnboardingScreen() {
   const handleComplete = async () => {
     try {
       await completeOnboarding();
-      router.replace('/(tabs)');
+      // User will be redirected to currency-setup by the index.tsx logic
+      router.replace('/');
     } catch (error) {
       console.error('Error completing onboarding:', error);
     }

@@ -1,12 +1,23 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { Currencies } from '../../constants/AppConstants';
 
 export default function ProfileScreen() {
   const { theme, themeMode, setThemeMode } = useTheme();
   const { user, signOut } = useAuth();
+  const {
+    settings,
+    toggleBiometric,
+    toggleNotifications,
+    toggleMaturityNotifications,
+    toggleAlertNotifications,
+    updateCurrency,
+    isBiometricAvailable,
+  } = useSettings();
 
   const handleSignOut = () => {
     Alert.alert(
@@ -39,8 +50,71 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleCurrencyChange = () => {
+    const currentCurrency = Currencies.find(c => c.code === settings.currency);
+
+    Alert.alert(
+      'Select Currency',
+      'Choose your preferred currency',
+      [
+        ...Currencies.map(currency => ({
+          text: `${currency.symbol} ${currency.name} (${currency.code})`,
+          onPress: async () => {
+            try {
+              await updateCurrency(currency.code);
+              Alert.alert('Success', `Currency changed to ${currency.name}`);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to update currency');
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleBiometricToggle = async () => {
+    try {
+      await toggleBiometric();
+    } catch (error: any) {
+      Alert.alert(
+        'Biometric Authentication',
+        error.message || 'Failed to toggle biometric lock'
+      );
+    }
+  };
+
+  const handleNotificationsToggle = async () => {
+    try {
+      await toggleNotifications();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update notification settings');
+    }
+  };
+
+  const handleMaturityNotificationsToggle = async () => {
+    try {
+      await toggleMaturityNotifications();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update maturity notification settings');
+    }
+  };
+
+  const handleAlertNotificationsToggle = async () => {
+    try {
+      await toggleAlertNotifications();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update alert notification settings');
+    }
+  };
+
+  const currentCurrency = Currencies.find(c => c.code === settings.currency);
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Profile</Text>
       </View>
@@ -84,32 +158,86 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]}>
+        <View style={[styles.menuItem, { backgroundColor: theme.card }]}>
           <View style={styles.menuItemLeft}>
             <Ionicons name="lock-closed-outline" size={24} color={theme.text} />
             <Text style={[styles.menuItemText, { color: theme.text }]}>Biometric Lock</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-        </TouchableOpacity>
+          <Switch
+            value={settings.biometricEnabled}
+            onValueChange={handleBiometricToggle}
+            trackColor={{ false: theme.border, true: theme.primary + '80' }}
+            thumbColor={settings.biometricEnabled ? theme.primary : theme.textSecondary}
+            disabled={!isBiometricAvailable}
+          />
+        </View>
+        {!isBiometricAvailable && (
+          <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+            Biometric authentication is not available on this device
+          </Text>
+        )}
 
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]}>
-          <View style={styles.menuItemLeft}>
-            <Ionicons name="notifications-outline" size={24} color={theme.text} />
-            <Text style={[styles.menuItemText, { color: theme.text }]}>Notifications</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.menuItem, { backgroundColor: theme.card }]}>
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: theme.card }]}
+          onPress={handleCurrencyChange}
+        >
           <View style={styles.menuItemLeft}>
             <Ionicons name="cash-outline" size={24} color={theme.text} />
             <Text style={[styles.menuItemText, { color: theme.text }]}>Currency</Text>
           </View>
           <View style={styles.menuItemRight}>
-            <Text style={[styles.menuItemValue, { color: theme.textSecondary }]}>USD</Text>
+            <Text style={[styles.menuItemValue, { color: theme.textSecondary }]}>
+              {currentCurrency?.symbol} {settings.currency}
+            </Text>
             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
           </View>
         </TouchableOpacity>
+      </View>
+
+      {/* Notifications */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Notifications</Text>
+
+        <View style={[styles.menuItem, { backgroundColor: theme.card }]}>
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="notifications-outline" size={24} color={theme.text} />
+            <Text style={[styles.menuItemText, { color: theme.text }]}>All Notifications</Text>
+          </View>
+          <Switch
+            value={settings.notificationsEnabled}
+            onValueChange={handleNotificationsToggle}
+            trackColor={{ false: theme.border, true: theme.primary + '80' }}
+            thumbColor={settings.notificationsEnabled ? theme.primary : theme.textSecondary}
+          />
+        </View>
+
+        <View style={[styles.menuItem, { backgroundColor: theme.card }]}>
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="calendar-outline" size={24} color={theme.text} />
+            <Text style={[styles.menuItemText, { color: theme.text }]}>Maturity Notifications</Text>
+          </View>
+          <Switch
+            value={settings.maturityNotifications}
+            onValueChange={handleMaturityNotificationsToggle}
+            trackColor={{ false: theme.border, true: theme.primary + '80' }}
+            thumbColor={settings.maturityNotifications ? theme.primary : theme.textSecondary}
+            disabled={!settings.notificationsEnabled}
+          />
+        </View>
+
+        <View style={[styles.menuItem, { backgroundColor: theme.card }]}>
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="alert-circle-outline" size={24} color={theme.text} />
+            <Text style={[styles.menuItemText, { color: theme.text }]}>Alert Notifications</Text>
+          </View>
+          <Switch
+            value={settings.alertNotifications}
+            onValueChange={handleAlertNotificationsToggle}
+            trackColor={{ false: theme.border, true: theme.primary + '80' }}
+            thumbColor={settings.alertNotifications ? theme.primary : theme.textSecondary}
+            disabled={!settings.notificationsEnabled}
+          />
+        </View>
       </View>
 
       {/* About */}
@@ -154,6 +282,9 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 20,
@@ -234,6 +365,13 @@ const styles = StyleSheet.create({
   },
   menuItemValue: {
     fontSize: 14,
+  },
+  helperText: {
+    fontSize: 12,
+    paddingHorizontal: 20,
+    marginTop: -4,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   signOutButton: {
     flexDirection: 'row',

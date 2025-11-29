@@ -167,6 +167,18 @@ class Database {
         timestamp INTEGER,
         synced INTEGER DEFAULT 0
       )`,
+
+      // Settings table
+      `CREATE TABLE IF NOT EXISTS settings (
+        userId TEXT PRIMARY KEY,
+        currency TEXT DEFAULT 'USD',
+        biometricEnabled INTEGER DEFAULT 0,
+        notificationsEnabled INTEGER DEFAULT 1,
+        maturityNotifications INTEGER DEFAULT 1,
+        alertNotifications INTEGER DEFAULT 1,
+        updatedAt INTEGER,
+        FOREIGN KEY (userId) REFERENCES users(uid)
+      )`,
     ];
 
     for (const table of tables) {

@@ -1,23 +1,32 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { useState, useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { router } from 'expo-router';
+import { APP_NAME } from '../constants/AppConstants';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { APP_NAME } from '../constants/AppConstants';
 
 export default function AuthScreen() {
   const { theme } = useTheme();
-  const { signInWithGoogle, signInWithApple } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle, signInWithApple } = useAuth();
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+
+  // Navigate away when user is authenticated
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('[AuthScreen] User authenticated, navigating to index');
+      router.replace('/');
+    }
+  }, [user, authLoading]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -29,6 +38,11 @@ export default function AuthScreen() {
       console.log('[AuthScreen] Google Sign-In successful:', user.email);
 
       setLoadingMessage('Login successful!');
+      // Brief delay to show success message, then reset loading
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingMessage('');
+      }, 500);
       // Don't navigate manually - let the auth state change trigger navigation
       // The index.tsx will handle routing based on onboardingCompleted status
     } catch (error: any) {
@@ -56,9 +70,14 @@ export default function AuthScreen() {
       console.log('[AuthScreen] Starting Apple Sign-In...');
 
       const user = await signInWithApple();
-      console.log('[AuthScreen] Apple Sign-In successful:', user.email);
+      console.log('[AuthScreen] Apple Sign-In successful:', user);
 
       setLoadingMessage('Login successful!');
+      // Brief delay to show success message, then reset loading
+      setTimeout(() => {
+        setLoading(false);
+        setLoadingMessage('');
+      }, 500);
       // Don't navigate manually - let the auth state change trigger navigation
     } catch (error: any) {
       setLoading(false);

@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider } from '../contexts/AuthContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { SettingsProvider } from '../contexts/SettingsContext';
 import { database } from '../lib/database/sqlite';
 
 // Keep splash screen visible while loading
@@ -25,6 +26,7 @@ function RootLayoutNav() {
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="auth" />
+        <Stack.Screen name="currency-setup" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="modal"
@@ -73,7 +75,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <SettingsProvider>
+          <RootLayoutNav />
+        </SettingsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

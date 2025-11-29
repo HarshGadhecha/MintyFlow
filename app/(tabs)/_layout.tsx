@@ -1,8 +1,7 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { router, Tabs } from 'expo-router';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { router } from 'expo-router';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -32,7 +31,6 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
-          marginTop: -4,
         },
       }}
     >

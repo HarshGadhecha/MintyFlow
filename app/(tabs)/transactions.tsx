@@ -14,7 +14,7 @@ export default function TransactionsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.emptyState, { backgroundColor: theme.surface }]}>
           <Ionicons name="swap-horizontal-outline" size={64} color={theme.textSecondary} />
           <Text style={[styles.emptyTitle, { color: theme.text }]}>No Transactions Yet</Text>
@@ -46,6 +46,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   emptyState: {
     padding: 40,
