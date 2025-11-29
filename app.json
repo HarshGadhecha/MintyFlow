@@ -46,7 +46,7 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-local-authentication",
+      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {
