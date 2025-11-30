@@ -117,7 +117,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           alertNotifications: result.alertNotifications === 1,
           additionalCurrencies,
         });
-        setHasCurrencySet(true);
+
+        // Only mark as set if user has completed the currency setup flow
+        setHasCurrencySet(result.currencySetupCompleted === 1);
       } else {
         // Create default settings for new user
         await createDefaultSettings();
@@ -135,11 +137,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await database.executeQuery(
-        `INSERT INTO settings (userId, currency, biometricEnabled, notificationsEnabled, maturityNotifications, alertNotifications, additionalCurrencies, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO settings (userId, currency, currencySetupCompleted, biometricEnabled, notificationsEnabled, maturityNotifications, alertNotifications, additionalCurrencies, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           user.uid,
           DEFAULT_CURRENCY,
+          0, // currencySetupCompleted = 0 (not completed yet)
           0,
           1,
           1,
@@ -174,11 +177,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       // Update local state
       setSettings(prev => ({ ...prev, [key]: value }));
-
-      // If setting currency for the first time, mark it as set
-      if (key === 'currency') {
-        setHasCurrencySet(true);
-      }
     } catch (error) {
       console.error(`Error updating ${key}:`, error);
       throw error;
@@ -186,7 +184,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCurrency = async (currency: string) => {
-    await updateSetting('currency', currency);
+    if (!user) return;
+
+    try {
+      // Update both currency and mark setup as completed
+      await database.executeQuery(
+        `UPDATE settings SET currency = ?, currencySetupCompleted = 1, updatedAt = ? WHERE userId = ?`,
+        [currency, Date.now(), user.uid]
+      );
+
+      // Update local state
+      setSettings(prev => ({ ...prev, currency }));
+      setHasCurrencySet(true);
+    } catch (error) {
+      console.error('Error updating currency:', error);
+      throw error;
+    }
   };
 
   const toggleBiometric = async () => {
