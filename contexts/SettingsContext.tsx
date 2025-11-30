@@ -11,16 +11,25 @@ export interface UserSettings {
   notificationsEnabled: boolean;
   maturityNotifications: boolean;
   alertNotifications: boolean;
+  additionalCurrencies: string[];
 }
 
 interface SettingsContextType {
   settings: UserSettings;
   loading: boolean;
+  currency: string;
+  biometricEnabled: boolean;
+  notificationsEnabled: boolean;
+  maturityNotifications: boolean;
+  alertNotifications: boolean;
+  additionalCurrencies: string[];
   updateCurrency: (currency: string) => Promise<void>;
   toggleBiometric: () => Promise<void>;
   toggleNotifications: () => Promise<void>;
   toggleMaturityNotifications: () => Promise<void>;
   toggleAlertNotifications: () => Promise<void>;
+  addAdditionalCurrency: (currency: string) => Promise<void>;
+  removeAdditionalCurrency: (currency: string) => Promise<void>;
   isBiometricAvailable: boolean;
   hasCurrencySet: boolean;
 }
@@ -35,6 +44,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     notificationsEnabled: true,
     maturityNotifications: true,
     alertNotifications: true,
+    additionalCurrencies: [],
   });
   const [loading, setLoading] = useState(true);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
@@ -57,6 +67,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         notificationsEnabled: true,
         maturityNotifications: true,
         alertNotifications: true,
+        additionalCurrencies: [],
       });
       setHasCurrencySet(false);
       setLoading(false);
@@ -87,12 +98,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (result) {
+        // Parse additional currencies from JSON string
+        let additionalCurrencies: string[] = [];
+        if (result.additionalCurrencies) {
+          try {
+            additionalCurrencies = JSON.parse(result.additionalCurrencies);
+          } catch (e) {
+            console.error('Error parsing additional currencies:', e);
+            additionalCurrencies = [];
+          }
+        }
+
         setSettings({
           currency: result.currency || DEFAULT_CURRENCY,
           biometricEnabled: result.biometricEnabled === 1,
           notificationsEnabled: result.notificationsEnabled === 1,
           maturityNotifications: result.maturityNotifications === 1,
           alertNotifications: result.alertNotifications === 1,
+          additionalCurrencies,
         });
         setHasCurrencySet(true);
       } else {
@@ -112,8 +135,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await database.executeQuery(
-        `INSERT INTO settings (userId, currency, biometricEnabled, notificationsEnabled, maturityNotifications, alertNotifications, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO settings (userId, currency, biometricEnabled, notificationsEnabled, maturityNotifications, alertNotifications, additionalCurrencies, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           user.uid,
           DEFAULT_CURRENCY,
@@ -121,6 +144,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           1,
           1,
           1,
+          JSON.stringify([]),
           Date.now(),
         ]
       );
@@ -131,6 +155,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         notificationsEnabled: true,
         maturityNotifications: true,
         alertNotifications: true,
+        additionalCurrencies: [],
       });
     } catch (error) {
       console.error('Error creating default settings:', error);
@@ -202,16 +227,64 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     await updateSetting('alertNotifications', newValue ? 1 : 0);
   };
 
+  const addAdditionalCurrency = async (currencyCode: string) => {
+    if (!user) return;
+
+    try {
+      const newCurrencies = [...settings.additionalCurrencies, currencyCode];
+      await database.executeQuery(
+        `UPDATE settings SET additionalCurrencies = ?, updatedAt = ? WHERE userId = ?`,
+        [JSON.stringify(newCurrencies), Date.now(), user.uid]
+      );
+
+      setSettings(prev => ({
+        ...prev,
+        additionalCurrencies: newCurrencies,
+      }));
+    } catch (error) {
+      console.error('Error adding additional currency:', error);
+      throw error;
+    }
+  };
+
+  const removeAdditionalCurrency = async (currencyCode: string) => {
+    if (!user) return;
+
+    try {
+      const newCurrencies = settings.additionalCurrencies.filter(c => c !== currencyCode);
+      await database.executeQuery(
+        `UPDATE settings SET additionalCurrencies = ?, updatedAt = ? WHERE userId = ?`,
+        [JSON.stringify(newCurrencies), Date.now(), user.uid]
+      );
+
+      setSettings(prev => ({
+        ...prev,
+        additionalCurrencies: newCurrencies,
+      }));
+    } catch (error) {
+      console.error('Error removing additional currency:', error);
+      throw error;
+    }
+  };
+
   return (
     <SettingsContext.Provider
       value={{
         settings,
         loading,
+        currency: settings.currency,
+        biometricEnabled: settings.biometricEnabled,
+        notificationsEnabled: settings.notificationsEnabled,
+        maturityNotifications: settings.maturityNotifications,
+        alertNotifications: settings.alertNotifications,
+        additionalCurrencies: settings.additionalCurrencies,
         updateCurrency,
         toggleBiometric,
         toggleNotifications,
         toggleMaturityNotifications,
         toggleAlertNotifications,
+        addAdditionalCurrency,
+        removeAdditionalCurrency,
         isBiometricAvailable,
         hasCurrencySet,
       }}

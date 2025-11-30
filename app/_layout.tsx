@@ -36,6 +36,54 @@ function RootLayoutNav() {
             title: 'Modal'
           }}
         />
+        <Stack.Screen
+          name="security-modal"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Security',
+            headerTintColor: isDark ? '#FFFFFF' : '#000000',
+            headerStyle: {
+              backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="currency-modal"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Currency',
+            headerTintColor: isDark ? '#FFFFFF' : '#000000',
+            headerStyle: {
+              backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="notification-modal"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Notifications',
+            headerTintColor: isDark ? '#FFFFFF' : '#000000',
+            headerStyle: {
+              backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+            },
+          }}
+        />
+        <Stack.Screen
+          name="personal-privacy-modal"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Privacy & Data',
+            headerTintColor: isDark ? '#FFFFFF' : '#000000',
+            headerStyle: {
+              backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+            },
+          }}
+        />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </>
