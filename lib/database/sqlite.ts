@@ -176,6 +176,7 @@ class Database {
         notificationsEnabled INTEGER DEFAULT 1,
         maturityNotifications INTEGER DEFAULT 1,
         alertNotifications INTEGER DEFAULT 1,
+        additionalCurrencies TEXT DEFAULT '[]',
         updatedAt INTEGER,
         FOREIGN KEY (userId) REFERENCES users(uid)
       )`,

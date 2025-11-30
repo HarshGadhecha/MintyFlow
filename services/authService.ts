@@ -12,8 +12,10 @@ import {
   signInWithCredential
 } from 'firebase/auth';
 import { get, ref, remove, set, update } from 'firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, database } from './firebase';
 import { GOOGLE_WEB_CLIENT } from './firebase.config';
+import { database as sqliteDB } from '@/lib/database/sqlite';
 
 class AuthService {
   constructor() {
@@ -186,16 +188,20 @@ class AuthService {
       const userId = firebaseUser.uid;
       console.log(`[AuthService] Starting account deletion for user: ${userId}`);
 
-      // Step 1: Delete all user's auctions and associated images
-      console.log('[AuthService] Deleting all user auctions and images...');
-      // Assuming mintyFlow account has a method to delete all auctions by user ID
+      // Step 1: Delete all local SQLite data
+      console.log('[AuthService] Deleting all local SQLite data...');
+      await sqliteDB.clearAllData();
 
-      // Step 2: Delete user profile from database
-      console.log('[AuthService] Deleting user profile from database...');
+      // Step 2: Clear AsyncStorage
+      console.log('[AuthService] Clearing AsyncStorage...');
+      await AsyncStorage.clear();
+
+      // Step 3: Delete user profile from Firebase Realtime Database
+      console.log('[AuthService] Deleting user profile from Firebase database...');
       const userRef = ref(database, `users/${userId}`);
       await remove(userRef);
 
-      // Step 3: Delete user from Firebase Auth
+      // Step 4: Delete user from Firebase Auth
       console.log('[AuthService] Deleting user from Firebase Auth...');
       await deleteUser(firebaseUser);
 
