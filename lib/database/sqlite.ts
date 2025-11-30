@@ -172,6 +172,7 @@ class Database {
       `CREATE TABLE IF NOT EXISTS settings (
         userId TEXT PRIMARY KEY,
         currency TEXT DEFAULT 'USD',
+        currencySetupCompleted INTEGER DEFAULT 0,
         biometricEnabled INTEGER DEFAULT 0,
         notificationsEnabled INTEGER DEFAULT 1,
         maturityNotifications INTEGER DEFAULT 1,
