@@ -9,6 +9,7 @@ class Database {
     try {
       this.db = await SQLite.openDatabaseAsync(DB_NAME);
       await this.createTables();
+      await this.runMigrations();
       console.log('Database initialized successfully');
     } catch (error) {
       console.error('Database initialization error:', error);
@@ -199,6 +200,27 @@ class Database {
 
     for (const index of indexes) {
       await this.db.execAsync(index);
+    }
+  }
+
+  private async runMigrations() {
+    if (!this.db) throw new Error('Database not initialized');
+
+    try {
+      // Migration: Add currencySetupCompleted column to settings table if it doesn't exist
+      // Check if column exists by querying table info
+      const tableInfo: any[] = await this.db.getAllAsync('PRAGMA table_info(settings)');
+      const hasColumn = tableInfo.some(col => col.name === 'currencySetupCompleted');
+
+      if (!hasColumn) {
+        console.log('Adding currencySetupCompleted column to settings table');
+        await this.db.execAsync(
+          'ALTER TABLE settings ADD COLUMN currencySetupCompleted INTEGER DEFAULT 0'
+        );
+      }
+    } catch (error) {
+      console.error('Error running migrations:', error);
+      // Don't throw - allow app to continue if migrations fail
     }
   }
 
