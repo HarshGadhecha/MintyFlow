@@ -217,14 +217,14 @@ class Database {
         await this.db.execAsync(
           'ALTER TABLE settings ADD COLUMN currencySetupCompleted INTEGER DEFAULT 0'
         );
-
-        // For existing users who already have settings, mark currency as set up
-        // This prevents showing the currency setup screen to users who already configured their currency
-        console.log('Updating existing settings rows to mark currency as set up');
-        await this.db.execAsync(
-          'UPDATE settings SET currencySetupCompleted = 1 WHERE currency IS NOT NULL'
-        );
       }
+
+      // Always update existing settings rows where currency is set but currencySetupCompleted is 0
+      // This fixes the case where users already configured their currency before this column was added
+      console.log('Updating existing users who already have currency configured');
+      await this.db.execAsync(
+        'UPDATE settings SET currencySetupCompleted = 1 WHERE currency IS NOT NULL AND currencySetupCompleted = 0'
+      );
     } catch (error) {
       console.error('Error running migrations:', error);
       // Don't throw - allow app to continue if migrations fail
