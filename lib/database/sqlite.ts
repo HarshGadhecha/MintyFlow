@@ -207,15 +207,23 @@ class Database {
     if (!this.db) throw new Error('Database not initialized');
 
     try {
-      // Migration: Add currencySetupCompleted column to settings table if it doesn't exist
-      // Check if column exists by querying table info
+      // Get current table schema
       const tableInfo: any[] = await this.db.getAllAsync('PRAGMA table_info(settings)');
-      const hasColumn = tableInfo.some(col => col.name === 'currencySetupCompleted');
+      const columnNames = tableInfo.map(col => col.name);
 
-      if (!hasColumn) {
+      // Migration 1: Add currencySetupCompleted column if it doesn't exist
+      if (!columnNames.includes('currencySetupCompleted')) {
         console.log('Adding currencySetupCompleted column to settings table');
         await this.db.execAsync(
           'ALTER TABLE settings ADD COLUMN currencySetupCompleted INTEGER DEFAULT 0'
+        );
+      }
+
+      // Migration 2: Add additionalCurrencies column if it doesn't exist
+      if (!columnNames.includes('additionalCurrencies')) {
+        console.log('Adding additionalCurrencies column to settings table');
+        await this.db.execAsync(
+          'ALTER TABLE settings ADD COLUMN additionalCurrencies TEXT DEFAULT \'[]\''
         );
       }
 
