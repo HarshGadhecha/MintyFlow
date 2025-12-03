@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   section: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },

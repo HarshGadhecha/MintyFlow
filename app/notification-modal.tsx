@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   section: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
@@ -381,10 +381,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   alertTypes: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    marginTop: 12,
+    paddingTop: 12,
   },
   alertItem: {
     flexDirection: 'row',

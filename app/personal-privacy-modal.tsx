@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   infoCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     marginBottom: 24,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
@@ -358,8 +358,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   divider: {
-    height: 1,
+    height: 0.5,
     marginVertical: 16,
+    opacity: 0.3,
   },
   rightsSection: {
     marginBottom: 20,
@@ -386,13 +387,6 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingTop: 16,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
   },
   deleteButton: {
     flexDirection: 'row',

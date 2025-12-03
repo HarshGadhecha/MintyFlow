@@ -267,7 +267,7 @@ export default function CurrencyModal() {
                     key={code}
                     style={[
                       styles.additionalItem,
-                      index !== 0 && { borderTopWidth: 1, borderTopColor: theme.border },
+                      index !== 0 && { borderTopWidth: 0.5, borderTopColor: theme.border, opacity: 0.3 },
                     ]}
                   >
                     <ThemedView style={styles.currencyLeft}>
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   section: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
