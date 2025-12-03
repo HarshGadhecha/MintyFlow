@@ -7,6 +7,8 @@ export interface User {
   createdAt: number;
   lastLogin: number;
   onboardingCompleted: boolean;
+  currencySetupCompleted?: boolean;
+  baseCurrency?: string;
 }
 
 // Wallet Types

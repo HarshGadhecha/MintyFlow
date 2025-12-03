@@ -9,6 +9,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  completeCurrencySetup: (currency: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -146,6 +147,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const completeCurrencySetup = async (currency: string) => {
+    try {
+      console.log('[AuthContext] completeCurrencySetup called with currency:', currency);
+      await authService.completeCurrencySetup(currency);
+
+      // Update local user state
+      if (user) {
+        setUser({ ...user, currencySetupCompleted: true, baseCurrency: currency });
+      }
+      console.log('[AuthContext] Currency setup completed');
+    } catch (error) {
+      console.error('[AuthContext] Complete Currency Setup Error:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -156,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         deleteAccount,
         completeOnboarding,
+        completeCurrencySetup,
       }}
     >
       {children}
