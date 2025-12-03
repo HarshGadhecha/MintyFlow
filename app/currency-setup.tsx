@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Currencies, APP_NAME } from '../constants/AppConstants';
 
 interface Currency {
@@ -23,6 +24,7 @@ interface Currency {
 export default function CurrencySetupScreen() {
   const { theme } = useTheme();
   const { updateCurrency } = useSettings();
+  const { completeCurrencySetup } = useAuth();
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,7 +47,14 @@ export default function CurrencySetupScreen() {
   const handleContinue = async () => {
     try {
       setSaving(true);
+
+      // Save to Firebase (this marks currency setup as completed)
+      await completeCurrencySetup(selectedCurrency);
+
+      // Also save to local SQLite for offline access
       await updateCurrency(selectedCurrency);
+
+      // Navigate to home
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Error setting currency:', error);

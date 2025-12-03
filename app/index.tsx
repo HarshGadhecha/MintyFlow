@@ -3,30 +3,28 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useSettings } from '../contexts/SettingsContext';
 
 export default function IndexScreen() {
   const { user, loading: authLoading } = useAuth();
   const { theme } = useTheme();
-  const { hasCurrencySet, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     console.log('[IndexScreen] Auth state:', {
       authLoading,
-      settingsLoading,
       user: user?.email,
       onboardingCompleted: user?.onboardingCompleted,
-      hasCurrencySet
+      currencySetupCompleted: user?.currencySetupCompleted,
+      baseCurrency: user?.baseCurrency,
     });
 
-    if (!authLoading && !settingsLoading) {
+    if (!authLoading) {
       if (!user) {
         console.log('[IndexScreen] No user - navigating to /auth');
         router.replace('/auth');
       } else if (!user.onboardingCompleted) {
         console.log('[IndexScreen] User not onboarded - navigating to /onboarding');
         router.replace('/onboarding');
-      } else if (!hasCurrencySet) {
+      } else if (!user.currencySetupCompleted) {
         console.log('[IndexScreen] User needs to set currency - navigating to /currency-setup');
         router.replace('/currency-setup');
       } else {
@@ -34,7 +32,7 @@ export default function IndexScreen() {
         router.replace('/(tabs)');
       }
     }
-  }, [user, authLoading, settingsLoading, hasCurrencySet]);
+  }, [user, authLoading]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

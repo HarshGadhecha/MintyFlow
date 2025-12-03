@@ -149,6 +149,8 @@ class AuthService {
         createdAt: now,
         lastLogin: now,
         onboardingCompleted: false,
+        currencySetupCompleted: false,
+        baseCurrency: undefined,
       };
 
       await set(userRef, newUser);
@@ -241,6 +243,21 @@ class AuthService {
     const userRef = ref(database, `users/${firebaseUser.uid}`);
     await update(userRef, { onboardingCompleted: true });
     console.log('[AuthService] Onboarding marked as complete for user:', firebaseUser.uid);
+  }
+
+  // Mark currency setup as complete and save base currency
+  async completeCurrencySetup(currency: string): Promise<void> {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      throw new Error('No user is currently signed in');
+    }
+
+    const userRef = ref(database, `users/${firebaseUser.uid}`);
+    await update(userRef, {
+      currencySetupCompleted: true,
+      baseCurrency: currency
+    });
+    console.log('[AuthService] Currency setup marked as complete for user:', firebaseUser.uid, 'Currency:', currency);
   }
 
   // Listen to auth state changes
